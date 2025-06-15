@@ -1,12 +1,10 @@
 [project]
-name = "rete-dashboard"
+name = "my-lan-dashboard"
 version = "0.1.0"
-description = "Manage devices on local network"
-authors = [{ name = "alv67" }]
-requires-python = ">=3.9"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-    "flask"
+    "netifaces>=0.11.0",
+    "scapy>=2.6.1",
 ]
-
-[tool.uv]
-# If you want to use lockfile, you can also enable this

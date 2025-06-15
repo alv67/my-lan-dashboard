@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "flask",
+# ]
+# ///
+
 from flask import Flask, render_template, request, redirect, url_for
 import db
 

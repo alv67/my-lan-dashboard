@@ -13,6 +13,10 @@ import uuid
 import os
 import sys
 import ipaddress
+import requests
+from dns import resolver, reversename
+import json
+from datetime import datetime
 
 from scapy.layers.l2 import ARP, Ether, srp
 import netifaces
@@ -46,7 +50,13 @@ def get_all_local_ips_and_macs():
             mac = addrs[netifaces.AF_LINK][0]['addr']
             # Escludi loopback e interfacce senza MAC valido
             if ip != "127.0.0.1" and mac and mac != "00:00:00:00:00:00":
-                devices.append({"ip": ip, "mac": mac})
+                devices.append({
+                    "ip": ip, 
+                    "mac": mac,
+                    "hostname": "Dispositivo locale",
+                    "vendor": get_vendor_from_mac(mac),
+                    "last_seen": datetime.now().isoformat()
+                })
     return devices
 
 def check_root():
@@ -55,6 +65,27 @@ def check_root():
         print("Errore: Questo script deve essere eseguito come root/amministratore.")
         print("Usa: sudo python3 scan.py")
         sys.exit(1)
+
+def get_vendor_from_mac(mac_address):
+    """Ottiene il vendor da un MAC address usando l'API di macvendors.com"""
+    try:
+        # Formatta il MAC address
+        #mac = mac_address.replace(':', '').upper()
+        mac = mac_address
+        response = requests.get(f'https://api.macvendors.com/{mac}', timeout=2)
+        if response.status_code == 200:
+            return response.text
+        return "Vendor sconosciuto"
+    except:
+        return "Vendor sconosciuto"
+
+def get_hostname(ip):
+    """Prova a risolvere il nome host da un IP"""
+    try:
+        addr = reversename.from_address(ip)
+        return str(resolver.resolve(addr, "PTR")[0])
+    except:
+        return "Nome host sconosciuto"
 
 def scan_network(ip_range):
     """
@@ -75,9 +106,14 @@ def scan_network(ip_range):
 
         devices = []
         for sent, received in answered:
+            hostname = get_hostname(received.psrc)
+            vendor = get_vendor_from_mac(received.hwsrc)
             devices.append({
                 "ip": received.psrc,
-                "mac": received.hwsrc
+                "mac": received.hwsrc,
+                "hostname": hostname,
+                "vendor": vendor,
+                "last_seen": datetime.now().isoformat()
             })
 
         # Aggiungi solo gli IP/MAC locali che appartengono al range
@@ -101,7 +137,7 @@ if __name__ == "__main__":
     try:
         devices = scan_network("192.168.1.0/24")
         for device in devices:
-            print(f"IP: {device['ip']}, MAC: {device['mac']}")
+            print(f"IP: {device['ip']}, MAC: {device['mac']}, Hostname: {device['hostname']}, Vendor: {device['vendor']}, Last Seen: {device['last_seen']}")
     except (OSError, ValueError) as e:
         print(f"Si è verificato un errore: {str(e)}")
         sys.exit(1)

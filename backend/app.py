@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from routes.devices import device_routes
+from routes.devices import devices_bp
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///devices.db'
@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Register the device routes
-app.register_blueprint(device_routes)
+app.register_blueprint(devices_bp)
 
 @app.route('/')
 def index():

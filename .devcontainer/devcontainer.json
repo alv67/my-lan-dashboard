@@ -22,5 +22,8 @@
 
 	"runArgs": [
 		"--network=host"
-	]
+	],
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {}
+	}
 }

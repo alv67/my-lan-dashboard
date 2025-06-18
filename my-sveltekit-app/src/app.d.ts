@@ -1,0 +1,1 @@
+// This file is used for TypeScript type declarations. You can define custom types used in your SvelteKit application here.

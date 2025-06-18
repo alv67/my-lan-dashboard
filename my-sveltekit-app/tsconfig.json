@@ -1,0 +1,16 @@
+{
+  "extends": "@sveltejs/tsconfig",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "__sapper__/*", "public/*"],
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": false,
+    "module": "ESNext",
+    "target": "ESNext",
+    "lib": ["DOM", "ESNext"],
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}

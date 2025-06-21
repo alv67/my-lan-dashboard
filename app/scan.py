@@ -1,6 +1,7 @@
 """
 # scan.py
-# Uno script Python per la scansione di rete che rileva gli indirizzi IP e MAC dei dispositivi connessi.
+# Uno script Python per la scansione di rete che rileva gli indirizzi 
+# IP e MAC dei dispositivi connessi.
 # Richiede i permessi di root per funzionare correttamente.
 # Utilizza le librerie scapy e netifaces per l'interazione con la rete.
 # Assicurati di eseguire questo script con i permessi di amministratore.
@@ -13,13 +14,14 @@ import uuid
 import os
 import sys
 import ipaddress
+from datetime import datetime
+#  import json
+
 import requests
 from dns import resolver, reversename
-import json
-from datetime import datetime
-
 from scapy.layers.l2 import ARP, Ether, srp
 import netifaces
+
 
 def get_local_ip():
     """Ottiene l'indirizzo IP locale della macchina."""
@@ -35,29 +37,32 @@ def get_local_ip():
         s.close()
     return ip
 
+
 def get_local_mac():
     """Ottiene l'indirizzo MAC locale della macchina."""
     mac = uuid.getnode()
-    return ':'.join(['{:02x}'.format((mac >> ele) & 0xff) for ele in range(40, -1, -8)])
+    return ':'.join([f'{((mac >> ele) & 0xff):02x}' for ele in range(40, -1, -8)])
+
 
 def get_all_local_ips_and_macs():
     """Ottiene tutti gli indirizzi IP e MAC delle interfacce di rete locali."""
-    devices = []
-    for iface in netifaces.interfaces():
-        addrs = netifaces.ifaddresses(iface)
+    dvcs = []
+    for iface in netifaces.interfaces(): # type: ignore
+        addrs = netifaces.ifaddresses(iface) # type: ignore
         if netifaces.AF_INET in addrs and netifaces.AF_LINK in addrs:
             ip = addrs[netifaces.AF_INET][0]['addr']
             mac = addrs[netifaces.AF_LINK][0]['addr']
             # Escludi loopback e interfacce senza MAC valido
             if ip != "127.0.0.1" and mac and mac != "00:00:00:00:00:00":
-                devices.append({
-                    "ip": ip, 
+                dvcs.append({
                     "mac": mac,
-                    "hostname": "Dispositivo locale",
-                    "vendor": get_vendor_from_mac(mac),
+                    "ip": ip,
+                    # "hostname": "Dispositivo locale",
+                    # "vendor": get_vendor_from_mac(mac),
                     "last_seen": datetime.now().isoformat()
                 })
-    return devices
+    return dvcs
+
 
 def check_root():
     """Verifica se lo script è eseguito come root"""
@@ -66,26 +71,29 @@ def check_root():
         print("Usa: sudo python3 scan.py")
         sys.exit(1)
 
+
 def get_vendor_from_mac(mac_address):
     """Ottiene il vendor da un MAC address usando l'API di macvendors.com"""
     try:
         # Formatta il MAC address
-        #mac = mac_address.replace(':', '').upper()
+        # mac = mac_address.replace(':', '').upper()
         mac = mac_address
         response = requests.get(f'https://api.macvendors.com/{mac}', timeout=2)
         if response.status_code == 200:
             return response.text
         return "Vendor sconosciuto"
-    except:
+    except requests.RequestException:
         return "Vendor sconosciuto"
+
 
 def get_hostname(ip):
     """Prova a risolvere il nome host da un IP"""
     try:
         addr = reversename.from_address(ip)
         return str(resolver.resolve(addr, "PTR")[0])
-    except:
+    except (resolver.NXDOMAIN, resolver.NoAnswer, resolver.Timeout, ValueError):
         return "Nome host sconosciuto"
+
 
 def scan_network(ip_range):
     """
@@ -104,15 +112,15 @@ def scan_network(ip_range):
         # Invia il pacchetto e riceve le risposte
         answered, _ = srp(packet, timeout=2, verbose=False)
 
-        devices = []
-        for sent, received in answered:
-            # hostname = get_hostname(received.psrc)
-            # vendor = get_vendor_from_mac(received.hwsrc)
-            devices.append({
-                "ip": received.psrc,
+        dvcs = []
+        for _, received in answered:
+            #  hostname = get_hostname(received.psrc)
+            #  vendor = get_vendor_from_mac(received.hwsrc)
+            dvcs.append({
                 "mac": received.hwsrc,
+                "ip": received.psrc,
                 # "hostname": hostname,
-                # "vendor": vendor,
+                #  "vendor": vendor,
                 "last_seen": datetime.now().isoformat()
             })
 
@@ -120,24 +128,28 @@ def scan_network(ip_range):
         local_devices = get_all_local_ips_and_macs()
         net = ipaddress.ip_network(ip_range, strict=False)
         for local in local_devices:
-            if (ipaddress.ip_address(local["ip"]) in net) and not any(d["ip"] == local["ip"] for d in devices):
-                devices.append(local)
+            if (ipaddress.ip_address(local["ip"]) in net) and \
+                    not any(d["ip"] == local["ip"] for d in dvcs):
+                dvcs.append(local)
 
-        return devices
+        return dvcs
     except PermissionError:
         print("Errore: Permessi insufficienti per eseguire la scansione di rete.")
         print("Usa: sudo python3 scan.py")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     # Verifica i permessi root all'avvio
     check_root()
-    
+
     # Esempio: sostituisci con il range della tua rete, es: 192.168.1.0/24
     try:
         devices = scan_network("192.168.1.0/24")
         for device in devices:
-            print(", ".join([f'{key}: {value}' for key, value in device.items()]))
+            print(
+                ", ".join([f'{key}: {value}' for key, value in device.items()]))
+
     except (OSError, ValueError) as e:
         print(f"Si è verificato un errore: {str(e)}")
         sys.exit(1)

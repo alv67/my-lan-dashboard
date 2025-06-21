@@ -106,13 +106,13 @@ def scan_network(ip_range):
 
         devices = []
         for sent, received in answered:
-            hostname = get_hostname(received.psrc)
-            vendor = get_vendor_from_mac(received.hwsrc)
+            # hostname = get_hostname(received.psrc)
+            # vendor = get_vendor_from_mac(received.hwsrc)
             devices.append({
                 "ip": received.psrc,
                 "mac": received.hwsrc,
-                "hostname": hostname,
-                "vendor": vendor,
+                # "hostname": hostname,
+                # "vendor": vendor,
                 "last_seen": datetime.now().isoformat()
             })
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     try:
         devices = scan_network("192.168.1.0/24")
         for device in devices:
-            print(f"IP: {device['ip']}, MAC: {device['mac']}, Hostname: {device['hostname']}, Vendor: {device['vendor']}, Last Seen: {device['last_seen']}")
+            print(", ".join([f'{key}: {value}' for key, value in device.items()]))
     except (OSError, ValueError) as e:
         print(f"Si è verificato un errore: {str(e)}")
         sys.exit(1)
